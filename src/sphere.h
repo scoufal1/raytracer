@@ -4,6 +4,7 @@
 
 #include "hittable.h"
 #include "AGLM.h"
+#include "math.h"
 
 class sphere : public hittable {
 public:
@@ -20,18 +21,34 @@ public:
 };
 
 bool sphere::hit(const ray& r, hit_record& rec) const {
-   glm::vec3 oc = r.origin() - center;
-   float a = glm::dot(r.direction(), r.direction());
-   float half_b = glm::dot(oc, r.direction());
-   float c = glm::length2(oc) - radius*radius;
 
-   float discriminant = half_b*half_b - a*c;
-   if (discriminant < 0) return false;
-   float sqrtd = sqrt(discriminant);
+   glm::vec3 el = center - r.origin();
+   float len = length(r.direction());
+   glm::vec3 d = r.direction()/len; // normalize vector
 
-   float t = (-half_b - sqrtd) / a;
-   if (t < 0) t = (-half_b + sqrtd) / a;
-   if (t < 0) return false;
+   float s = dot(el, d);
+   float elSqr = dot(el, el);
+   float rSqr = radius * radius;
+   // check if sphere is behind us and we're not inside sphere
+   if(s < 0 && elSqr > rSqr) { 
+      return false;
+   }
+
+   float mSqr = elSqr - s*s;
+   // m is outside sphere
+   if(mSqr > rSqr) {
+      return false;
+   }
+   float q = sqrt(rSqr - mSqr);
+   float t;
+   // we are outside sphere
+   if(elSqr > rSqr) {
+      t = s - q;
+   } else {
+      // we are inside sphere
+      t = s + q;
+   }
+   t = t / len;
 
    // save relevant data in hit record
    rec.t = t; // save the time when we hit the object
