@@ -12,13 +12,32 @@ public:
 
    virtual bool hit(const ray& r, hit_record& rec) const override
    {
-      // todo
-      return false;
+      float numer = dot(a-r.origin(), n);
+      float len = length(r.direction());
+      glm::vec3 d = r.direction()/len; // normalize vector
+      float denom = dot(d,n); 
+
+      // vector is parallel to plane
+      if(denom == 0) return false;
+
+      float t = numer / denom;
+      // vector misses
+      if(t < 0) return false;
+
+      t = t / len;
+
+      // save relevant data in hit record
+      rec.t = t; // save the time when we hit the object
+      rec.p = r.at(t); // ray.origin + t * ray.direction
+      rec.mat_ptr = mat_ptr; 
+      rec.set_face_normal(r, n);
+
+      return true;
    }
 
 public:
-   glm::vec3 a;
-   glm::vec3 n;
+   glm::vec3 a; // point on the plane
+   glm::vec3 n; // normal vector
    std::shared_ptr<material> mat_ptr;
 };
 
