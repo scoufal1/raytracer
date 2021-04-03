@@ -62,9 +62,21 @@ public:
   virtual bool scatter(const ray& r_in, const hit_record& hit, 
      glm::color& attenuation, ray& scattered) const override 
   {
-     // todo
-     attenuation = glm::color(0);
-     return false;
+      using namespace glm;
+
+      color ambient = ka * ambientColor;
+      
+      vec3 n = normalize(hit.normal);
+      vec3 L = normalize(lightPos - hit.p);
+      float max = 0.0 < (dot(L,n)) ? (dot(L,n)) : 0.0; // return max(0, dot(L,n))
+      color diffuse = kd * max * diffuseColor;
+
+      vec3 r = (2 * max * n) - L;
+      float view_dot_reflect = dot(normalize((viewPos - hit.p)), normalize(r));
+      color specular = ks * specColor * pow(view_dot_reflect, shininess);
+
+      attenuation = ambient + diffuse + specular;
+      return false;
   }
 
 public:
@@ -82,13 +94,16 @@ public:
 class metal : public material {
 public:
    metal(const glm::color& a, float f) : albedo(a), fuzz(glm::clamp(f,0.0f,1.0f)) {}
-
+   
    virtual bool scatter(const ray& r_in, const hit_record& rec, 
       glm::color& attenuation, ray& scattered) const override 
    {
-     // todo
+      using namespace glm;
+
+      vec3 reflected = reflect(normalize(r_in.direction()), rec.normal);
+      scattered = ray(rec.p, reflected + fuzz*random_unit_sphere());
       attenuation = albedo;
-      return false;
+      return (dot(scattered.direction(), rec.normal) > 0);
    }
 
 public:
@@ -100,12 +115,18 @@ class dielectric : public material {
 public:
   dielectric(float index_of_refraction) : ir(index_of_refraction) {}
 
-  virtual bool scatter(const ray& r_in, const hit_record& rec, 
+   virtual bool scatter(const ray& r_in, const hit_record& rec, 
      glm::color& attenuation, ray& scattered) const override 
    {
-     // todo
-     attenuation = glm::color(0);
-     return false;
+      using namespace glm;
+      attenuation = color(1.0, 1.0, 1.0);
+      float refraction_ratio = rec.front_face ? (1.0/ir) : ir;
+
+      vec3 unit_direction = normalize(r_in.direction());
+      vec3 refracted = refract(unit_direction, rec.normal, refraction_ratio);
+
+      scattered = ray(rec.p, refracted);
+      return true;
    }
 
 public:
