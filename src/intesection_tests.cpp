@@ -36,6 +36,19 @@ void check(bool val, const std::string& message, const hit_record& hit, const ra
    assert(val);
 }
 
+void test_box(const box& b, const ray& r, bool hits, const hit_record& desired) {
+   hit_record hit;
+   bool result = b.hit(r, hit);
+
+   check(result == hits, "error: ray should hit", hit, r);
+   if (hits) {
+      check(vecEquals(hit.p, desired.p), "error: position incorrect:", hit, r);
+      check(vecEquals(hit.normal, desired.normal), "error: normal incorrect:", hit, r);
+      check(equals(hit.t, desired.t), "error: hit time incorrect", hit, r);
+      check(hit.front_face == desired.front_face, "error: front facing incorrect", hit, r);
+   }
+}
+
 void test_triangle(const triangle& t, const ray& r, bool hits, const hit_record& desired) {
    hit_record hit;
    bool result = t.hit(r, hit);
@@ -142,6 +155,10 @@ int main(int argc, char** argv)
                true, 
                hit_record{vec3(0,1,0), vec3(0,0,1), 0, true, empty}); 
    test_triangle(t, 
+               ray(point3(0, 1, 0), vec3(1, 0, 0)), // ray inside/parallel to triangle's plane (misses)
+               false, 
+               none); 
+   test_triangle(t, 
                ray(point3(0, 0, 5), vec3(0, -2, -5)), // ray outside/towards triangle (misses)
                false, 
                none); 
@@ -149,4 +166,31 @@ int main(int argc, char** argv)
                ray(point3(0, 0, 5), vec3(0, -2, 5)), // ray outside/away from triangle (misses)
                false, 
                none); 
+
+   // box tests
+
+   box b(point3(0), vec3(1,0,0), vec3(0,1,0), vec3(0,0,1), 2, 2, 2, empty);
+   test_box(b, 
+               ray(point3(0, 0, 3), vec3(0, 0, -1)), // ray outside/towards box
+               true, 
+               hit_record{vec3(0,0,2), vec3(0,0,1), 1, true, empty}); 
+
+   test_box(b, 
+               ray(point3(0, 0, 0), vec3(0, 0, -1)), // ray inside box
+               true, 
+               hit_record{ vec3(0,0,-2), vec3(0,0,1), 2, false, empty}); 
+
+  test_box(b, 
+               ray(point3(0, 0, 3), vec3(0, 0, 1)), // ray outside/away box
+               false, 
+               none); 
+
+   test_box(b, 
+               ray(point3(0, 0, 3), vec3(0, 5,-1)), // ray outside/towards box (miss)
+               false, 
+               none); 
+   test_box(b, 
+               ray(point3(0, 0, 3), vec3(0, 1,-3)), // ray outside/towards sphere (hit)
+               true, 
+               hit_record{point3(0,1/3.0f, 2), vec3(0,0,1), 1/3.0f, true, empty}); 
 }

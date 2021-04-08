@@ -29,7 +29,19 @@ public:
           float vfov, // vertical field-of-view in degrees
           float aspect_ratio) 
    {
-      // todo
+      float theta = (vfov * M_PI ) / 180.0 ;
+      float h = tan(theta/2);
+      float viewport_height = 2.0 * h;
+      float viewport_width = aspect_ratio * viewport_height;
+
+      glm::vec3 w = normalize(lookfrom - lookat);
+      glm::vec3 u = normalize(cross(vup, w));
+      glm::vec3 v = cross(w, u);
+
+      origin = lookfrom;
+      horizontal = viewport_width * u;
+      vertical = viewport_height * v;
+      lower_left_corner = origin - horizontal*0.5f - vertical*0.5f - w;
    }
 
    virtual ray get_ray(float u, float v) const 

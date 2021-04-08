@@ -46,6 +46,16 @@ public:
      kd(0.45), ks(0.45), ka(0.1), shininess(10.0) 
   {}
 
+  phong(const glm::vec3& view,
+        const glm::color& idiffuseColor) :
+     diffuseColor(idiffuseColor), 
+     specColor(1,1,1),
+     ambientColor(.01f, .01f, .01f),
+     lightPos(5,5,0),
+     viewPos(view), 
+     kd(0.45), ks(0.45), ka(0.1), shininess(10.0) 
+  {}
+
   phong(const glm::color& idiffuseColor, 
         const glm::color& ispecColor,
         const glm::color& iambientColor,
@@ -113,24 +123,41 @@ public:
 
 class dielectric : public material {
 public:
-  dielectric(float index_of_refraction) : ir(index_of_refraction) {}
+  dielectric(float index_of_refraction) : 
+   ir(index_of_refraction),
+   glassColor(1,1,1)
+   {}
+  dielectric(float index_of_refraction, const glm::color& isGlassColor) : 
+   ir(index_of_refraction),
+   glassColor(isGlassColor) 
+   {}
 
    virtual bool scatter(const ray& r_in, const hit_record& rec, 
      glm::color& attenuation, ray& scattered) const override 
    {
       using namespace glm;
-      attenuation = color(1.0, 1.0, 1.0);
+      attenuation = glassColor;
       float refraction_ratio = rec.front_face ? (1.0/ir) : ir;
 
       vec3 unit_direction = normalize(r_in.direction());
-      vec3 refracted = refract(unit_direction, rec.normal, refraction_ratio);
+      float cos_theta = fmin(dot(-unit_direction, rec.normal), 1.0);
+      float sin_theta = sqrt(1.0 - cos_theta*cos_theta);
 
-      scattered = ray(rec.p, refracted);
+      bool cannot_refract = refraction_ratio * sin_theta > 1.0;
+      vec3 direction;
+
+      if (cannot_refract)
+            direction = reflect(unit_direction, rec.normal);
+      else
+            direction = refract(unit_direction, rec.normal, refraction_ratio);
+
+      scattered = ray(rec.p, direction);
       return true;
    }
 
 public:
   float ir; // Index of Refraction
+  glm::color glassColor;
 };
 
 
